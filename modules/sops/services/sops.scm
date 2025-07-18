@@ -123,7 +123,7 @@ identities where SOPS should look for when decrypting a secret.")
             (sops-service-configuration-age-key-file config))
            (gnupg-home
             (sops-service-configuration-gnupg-home config))
-           (shepherd-req (home-sops-service-configuration-shepherd-requirement config))
+           (shepherd-req (sops-service-configuration-shepherd-requirement config))
            (secrets (sops-service-configuration-secrets config))
            (secrets-directory
             (sops-service-configuration-secrets-directory config))
@@ -133,7 +133,7 @@ identities where SOPS should look for when decrypting a secret.")
            (sops (sops-service-configuration-sops config)))
       (list
        (shepherd-service (provision '(sops-secrets))
-                         (requirement shepherd-requirement)
+                         (requirement shepherd-req)
                          (one-shot? #t)
                          (documentation
                           "SOPS secrets decrypting service.")
