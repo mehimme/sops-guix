@@ -39,10 +39,14 @@
             sops-service-configuration-age-key-file
             sops-service-configuration-verbose?
             sops-service-configuration-secrets-directory
-            sops-service-configuration-secrets))
+            sops-service-configuration-secrets
+            sops-service-configuration-shepherd-requirement))
 
 (define list-of-sops-secrets?
   (list-of sops-secret?))
+
+(define list-of-sops-symbols?
+  (list-of symbol?))
 
 (define-configuration/no-serialization sops-public-key
   (name
@@ -100,7 +104,12 @@ identities where SOPS should look for when decrypting a secret.")
    "When true the service will print extensive information about its execution state.")
   (secrets
    (list-of-sops-secrets '())
-   "The @code{sops-secret} records managed by the @code{sops-secrets-service-type}."))
+   "The @code{sops-secret} records managed by the @code{sops-secrets-service-type}.")
+  (shepherd-requirement
+   (list-of-symbols `(user-processes
+                      ,(string->symbol
+                        (string-append "file-system-" secrets-directory))))
+   "List of shepherd services that must be started before decrypting SOPS secrets."))
 
 (define (sops-secrets-shepherd-service config)
   (when config
@@ -114,6 +123,7 @@ identities where SOPS should look for when decrypting a secret.")
             (sops-service-configuration-age-key-file config))
            (gnupg-home
             (sops-service-configuration-gnupg-home config))
+           (shepherd-req (home-sops-service-configuration-shepherd-requirement config))
            (secrets (sops-service-configuration-secrets config))
            (secrets-directory
             (sops-service-configuration-secrets-directory config))
@@ -123,10 +133,7 @@ identities where SOPS should look for when decrypting a secret.")
            (sops (sops-service-configuration-sops config)))
       (list
        (shepherd-service (provision '(sops-secrets))
-                         (requirement
-                          `(user-processes
-                            ,(string->symbol
-                              (string-append "file-system-" secrets-directory))))
+                         (requirement shepherd-requirement)
                          (one-shot? #t)
                          (documentation
                           "SOPS secrets decrypting service.")
